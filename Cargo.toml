@@ -1,0 +1,15 @@
+[package]
+name = "ros_camera_driver_rs"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "camera_driver_node"
+path = "src/main.rs"
+
+[dependencies]
+byteorder = "1.4.3"
+clap = { version = "4.0.10", features = ["color", "derive", "help", "usage", "suggestions"] }
+opencv = { version = "0.84.5", features = ["clang-runtime"] }
+rclrs="0.3.1"
+sensor_msgs="*"
