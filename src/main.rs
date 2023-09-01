@@ -80,12 +80,19 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         message.encoding = args.encoding.clone();
         message.is_bigendian = 1;
 
+  
+        let start = SystemTime::now();
+        // message.data = frame.data_bytes()?.to_vec();
         // TODO(YV): Explore this zero copy approach again.
-        // unsafe {
-        //     let data = slice::from_raw_parts(frame.data(), length as usize);
-        //     message.data = Vec::from(data);
-        // }
-        message.data = frame.data_bytes()?.to_vec();
+        unsafe {
+            // let data = slice::from_raw_parts(frame.data(), (message.height * message.width) as usize);
+            // message.data = Vec::from(data);
+            message.data = Vec::from_raw_parts(frame.data() as *mut u8, (message.height * message.width) as usize, (message.height * message.width) as usize);
+            mem::forget(frame);
+        }
+        let end = SystemTime::now();
+        let delta = end.duration_since(start)?.as_nanos() / 1000;
+        println!("Copying took {delta} us");
 
         publisher.publish(message)?;
 
