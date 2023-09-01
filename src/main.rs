@@ -22,7 +22,7 @@ struct CommandLineArgs {
     frame_id: String,
 
     /// The frequency in hz at which to publish the frames.
-    #[arg(short, long, default_value_t = 15.0)]
+    #[arg(short, long, default_value_t = 30.0)]
     rate: f32,
 
     /// The topic to publish the frames.
@@ -67,26 +67,24 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         message.header.stamp.sec = time_now.duration_since(UNIX_EPOCH)?.as_secs() as i32;
         message.header.stamp.nanosec = time_now.duration_since(UNIX_EPOCH)?.as_nanos() as u32;
 
-        message.height = frame.size()?.height as u32;
-        message.width = frame.size()?.width as u32;
+        message.height = frame.rows() as u32;
+        message.width = frame.cols() as u32;
+        message.step = (frame.elem_size()? * ( message.width as usize )) as u32; // message.width;
 
         message.encoding = args.encoding.clone();
-        // message.is_bigendian = NativeEndian == BigEndian;
+        message.is_bigendian = 1;
 
-        let length = message.height * message.width - 1;
+        // TODO(YV): Explore this zero copy approach again.
         // unsafe {
         //     let data = slice::from_raw_parts(frame.data(), length as usize);
         //     message.data = Vec::from(data);
         // }
-        // message.data = frame.data_bytes()?.to_vec();
-        message.data = Vec::with_capacity(length as usize);
-        message.data = vec![255; length as usize ];
-        // let bytes = unsafe {slice::from_raw_parts(bytes, bytes_length)};
-        // let mut bytes: Vec<u8> = Vec::from(bytes);
-        publisher.publish(&message)?;
+        message.data = frame.data_bytes()?.to_vec();
+
+        publisher.publish(message)?;
 
         let sleep_till = last_now + period;
-        let sleep_for : Duration = sleep_till.duration_since(time_now)?;
+        let sleep_for : Duration = sleep_till.duration_since(time_now).unwrap_or(Duration::from_secs(0));
         last_now = sleep_till;
         sleep(sleep_for);
     }
